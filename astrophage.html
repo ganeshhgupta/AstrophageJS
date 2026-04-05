@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Astrophage — Project Hail Mary</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; background: #100001; overflow: hidden; font-family: 'Courier New', monospace; }
+  #scene { position: fixed; inset: 0; }
+  #hud {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+    display: flex; align-items: center; gap: 20px; padding: 9px 18px;
+    background: rgba(0,0,0,0.85); border-top: 1px solid rgba(160,8,8,0.45);
+    backdrop-filter: blur(8px);
+  }
+  .hud-label { color: #8a1010; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 3px; user-select: none; }
+  .hud-val   { color: #ff2828; font-size: 10px; letter-spacing: .08em; margin-top: 2px; user-select: none; min-width: 34px; text-align: right; }
+  .hud-group { display: flex; flex-direction: column; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100px; height: 3px; background: rgba(120,6,6,.4); border-radius: 2px; outline: none; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 11px; height: 11px; border-radius: 50%; background: #991010; box-shadow: 0 0 5px #cc0000; border: 1px solid #ff2222; cursor: pointer; }
+  #hud-title  { color: #5a0c0c; font-size: 12px; letter-spacing: .22em; font-weight: bold; text-transform: uppercase; flex-shrink: 0; }
+  #fps-display{ color: #3a0808; font-size: 10px; letter-spacing: .1em; margin-left: auto; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- astrophage.js mounts its canvas inside this element -->
+<div id="scene"></div>
+
+<div id="hud">
+  <span id="hud-title">ASTROPHAGE</span>
+  <div class="hud-group">
+    <div class="hud-label">Density</div>
+    <input type="range" id="sl-density" min="100" max="5000" value="1200">
+    <div class="hud-val" id="val-density">1200</div>
+  </div>
+  <div class="hud-group">
+    <div class="hud-label">Drift</div>
+    <input type="range" id="sl-drift" min="1" max="20" value="3">
+    <div class="hud-val" id="val-drift">0.30</div>
+  </div>
+  <div class="hud-group">
+    <div class="hud-label">Source Z</div>
+    <input type="range" id="sl-vpz" min="1" max="100" value="15">
+    <div class="hud-val" id="val-vpz">0.75</div>
+  </div>
+  <div class="hud-group">
+    <div class="hud-label">Size</div>
+    <input type="range" id="sl-size" min="5" max="30" value="14">
+    <div class="hud-val" id="val-size">14</div>
+  </div>
+  <span id="fps-display">-- fps</span>
+</div>
+
+<script src="astrophage.js"></script>
+<script>
+  const scene = Astrophage.init('scene', {
+    count:      1200,
+    driftSpeed: 0.30,
+    sourceZ:    0.75,
+    baseSize:   14,
+    onFps: fps => { document.getElementById('fps-display').textContent = `${fps} fps`; },
+  });
+
+  const $  = id => document.getElementById(id);
+
+  $('sl-density').addEventListener('input', e => {
+    const v = +e.target.value;
+    scene.setOptions({ count: v });
+    $('val-density').textContent = v;
+  });
+
+  $('sl-drift').addEventListener('input', e => {
+    const v = (e.target.value / 10).toFixed(2);
+    scene.setOptions({ driftSpeed: +v });
+    $('val-drift').textContent = v;
+  });
+
+  $('sl-vpz').addEventListener('input', e => {
+    const v = +((e.target.value / 100) ** 2 * 5 + 0.05).toFixed(2);
+    scene.setOptions({ sourceZ: v });
+    $('val-vpz').textContent = v;
+  });
+
+  $('sl-size').addEventListener('input', e => {
+    const v = +e.target.value;
+    scene.setOptions({ baseSize: v });
+    $('val-size').textContent = v;
+  });
+</script>
+</body>
+</html>
