@@ -62,6 +62,9 @@ scene.destroy()
 
 ## Preview
 
+![Sample 1](sample-1.png)
+![Sample 2](sample-2.png)
+
 Open `astrophage.html` in any browser — no server needed, just a local file open.
 
 It includes a live HUD with sliders for density, drift speed, source Z, and particle size.
