@@ -174,8 +174,34 @@
     const baseR     = this._randR();
     const speedMult = 0.35 + Math.random() * 1.30;
     const z         = z0 !== undefined ? z0 : Math.random() * 0.06 + 0.001;
+
+    // ── concentric origin rings ──────────────────────────────────────
+    // Particles stream outward from one of 3 ring origins around centre.
+    // originFrac: normalised ring radius (fraction of screen diagonal).
+    // originAngle: position on that ring.
+    // angle: actual travel direction — random for ring 0, biased outward
+    // (±spread around originAngle) for rings 1 & 2.
+    const ringRoll = Math.random();
+    let originFrac, originAngle, angle;
+    if (ringRoll < 0.55) {
+      // Ring 0 — centre: fully random direction
+      originFrac  = 0;
+      originAngle = 0;
+      angle       = Math.random() * Math.PI * 2;
+    } else if (ringRoll < 0.80) {
+      // Ring 1 — inner halo (~10% of diagonal)
+      originFrac  = 0.10;
+      originAngle = Math.random() * Math.PI * 2;
+      angle       = originAngle + (Math.random() - 0.5) * Math.PI * 0.85;
+    } else {
+      // Ring 2 — outer halo (~20% of diagonal)
+      originFrac  = 0.20;
+      originAngle = Math.random() * Math.PI * 2;
+      angle       = originAngle + (Math.random() - 0.5) * Math.PI * 0.65;
+    }
+
     return {
-      angle: Math.random() * Math.PI * 2,
+      angle, originFrac, originAngle,
       z, baseR, speedMult,
 
       blinkState: 0, blinkAlpha: 1,
@@ -224,9 +250,16 @@
     const span = 1 / vz - 1 / (vz + 1);
     const zp   = (1 / vz - 1 / wz) / span;
 
-    const spread = Math.hypot(this._W, this._H) * 0.62;
-    p._sx = this._vpX + Math.cos(p.angle) * zp * spread;
-    p._sy = this._vpY + Math.sin(p.angle) * zp * spread;
+    const diag   = Math.hypot(this._W, this._H);
+    const spread = diag * 0.62;
+
+    // Offset origin by ring position (ring 0 = 0,0 = pure centre)
+    const ringPx = p.originFrac * diag;
+    const ox     = Math.cos(p.originAngle) * ringPx;
+    const oy     = Math.sin(p.originAngle) * ringPx;
+
+    p._sx = this._vpX + ox + Math.cos(p.angle) * zp * spread;
+    p._sy = this._vpY + oy + Math.sin(p.angle) * zp * spread;
     p._r  = p.baseR * (0.12 + Math.pow(Math.max(p.z, 0), 0.48) * 3.1);
   };
 
@@ -329,9 +362,17 @@
   };
 
   AstrophageScene.prototype._drawBokeh = function (ctx, sx, sy, r, alpha) {
-    const PI2    = Math.PI * 2;
-    const cl     = v => Math.min(1, v);
-    const outerR = r * 1.10;
+    const PI2 = Math.PI * 2;
+    const cl  = v => Math.min(1, v);
+
+    // Fix 1: particles larger than a thumbnail get progressively softer edges.
+    // softFactor ramps from 0 at r=18px up to 1 at r≈53px.
+    // Effect: outerR grows (more blur bleed) and outer stop alphas drop.
+    const THUMB = 18;
+    const soft  = Math.max(0, Math.min(1, (r - THUMB) / 35));
+    const em    = 1 - soft * 0.70; // edge alpha multiplier (1 → 0.30 for huge)
+
+    const outerR = r * (1.10 + soft * 0.85); // up to r*1.95 for very large
     const rn     = r / outerR;
     const g      = ctx.createRadialGradient(sx, sy, 0, sx, sy, outerR);
 
@@ -341,12 +382,13 @@
       g.addColorStop(0.55, `rgba(200,  30,  45, ${cl(alpha * 0.25)})`);
       g.addColorStop(1,    'rgba(0,0,0,0)');
     } else {
+      // Centre stops unaffected; outer stops scaled by em so large discs fade out fast
       g.addColorStop(0,                     `rgba(255, 100, 115, ${cl(alpha * 0.55)})`);
       g.addColorStop(rn * 0.45,            `rgba(252,  88, 104, ${cl(alpha * 0.52)})`);
-      g.addColorStop(rn * 0.68,            `rgba(235,  55,  72, ${cl(alpha * 0.45)})`);
-      g.addColorStop(rn * 0.88,            `rgba(200,  22,  38, ${cl(alpha * 0.36)})`);
-      g.addColorStop(rn,                    `rgba(162,  10,  22, ${cl(alpha * 0.26)})`);
-      g.addColorStop(rn + (1 - rn) * 0.5, `rgba(110,   5,  12, ${cl(alpha * 0.08)})`);
+      g.addColorStop(rn * 0.68,            `rgba(235,  55,  72, ${cl(alpha * 0.45 * em)})`);
+      g.addColorStop(rn * 0.88,            `rgba(200,  22,  38, ${cl(alpha * 0.36 * em)})`);
+      g.addColorStop(rn,                    `rgba(162,  10,  22, ${cl(alpha * 0.26 * em)})`);
+      g.addColorStop(rn + (1 - rn) * 0.5, `rgba(110,   5,  12, ${cl(alpha * 0.08 * em)})`);
       g.addColorStop(1,                     'rgba(0,0,0,0)');
     }
 
