@@ -164,10 +164,11 @@
 
   AstrophageScene.prototype._randR = function () {
     const s = this._cfg.baseSize, r = Math.random();
-    if (r < 0.65) return 0.8 + Math.random() * s * 0.16;
-    if (r < 0.88) return s * (0.30 + Math.random() * 0.75);
-    if (r < 0.97) return s * (1.0  + Math.random() * 1.8);
-    return               s * (3.0  + Math.random() * 4.5);
+    // Tighter distribution — no extreme outliers, main mass is medium bokeh
+    if (r < 0.40) return s * (0.12 + Math.random() * 0.18); // small sparkles
+    if (r < 0.82) return s * (0.32 + Math.random() * 0.45); // main medium bokeh
+    if (r < 0.96) return s * (0.80 + Math.random() * 0.55); // larger bokeh
+    return               s * (1.40 + Math.random() * 0.65); // rare large (max ~2× base)
   };
 
   AstrophageScene.prototype._makeParticle = function (z0) {
@@ -228,7 +229,8 @@
   AstrophageScene.prototype._initParticles = function () {
     this._particles = [];
     for (let i = 0; i < this._cfg.count; i++) {
-      const p = this._makeParticle(Math.random());
+      // Bias z toward 0 (centre) — sqrt pulls the distribution inward
+      const p = this._makeParticle(Math.pow(Math.random(), 1.6));
       p.alpha = 1;
       this._particles.push(p);
     }
@@ -251,10 +253,10 @@
     const zp   = (1 / vz - 1 / wz) / span;
 
     const diag   = Math.hypot(this._W, this._H);
-    const spread = diag * 0.62;
+    const spread = diag * 0.38; // tighter spread → denser around centre
 
     // Offset origin by ring position (ring 0 = 0,0 = pure centre)
-    const ringPx = p.originFrac * diag;
+    const ringPx = p.originFrac * diag * 0.55; // also shrink ring radii proportionally
     const ox     = Math.cos(p.originAngle) * ringPx;
     const oy     = Math.sin(p.originAngle) * ringPx;
 
@@ -281,7 +283,7 @@
 
       const m = p._r * 2 + 60;
       if (p.z >= 1 || p._sx < -m || p._sx > W + m || p._sy < -m || p._sy > H + m) {
-        ps[i] = this._makeParticle(Math.random() * 0.05 + 0.001);
+        ps[i] = this._makeParticle(Math.random() * 0.03 + 0.001);
       }
     }
     ps.sort((a, b) => a.z - b.z);
